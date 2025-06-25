@@ -36,9 +36,17 @@ if [[ $EUID -eq 0 ]]; then
    print_warning "Por favor, cambia a un usuario normal con privilegios sudo:"
    echo -e "${YELLOW}   exit${NC}                    # Salir de root"
    echo -e "${YELLOW}   su - sonic${NC}              # Cambiar al usuario sonic"
-   echo -e "${YELLOW}   cd /sonic-admin-lite${NC}    # Ir al directorio del proyecto"
+   echo -e "${YELLOW}   cd ~/sonic-admin-lite${NC}   # Ir al directorio del proyecto"
    echo -e "${YELLOW}   ./install.sh${NC}            # Ejecutar el script"
    exit 1
+fi
+
+# Verificar que estemos en el directorio correcto
+if [[ ! -f "package.json" ]] || [[ ! -f "install.sh" ]]; then
+    print_error "No se encuentra en el directorio correcto del proyecto."
+    print_warning "Asegúrate de estar en el directorio sonic-admin-lite"
+    print_warning "Ejecuta: cd ~/sonic-admin-lite"
+    exit 1
 fi
 
 # Banner
@@ -60,22 +68,10 @@ echo "Panel de Administración de Radios - Instalador v1.1"
 echo "=================================================================="
 echo ""
 
-# Verificar si estamos en el directorio correcto
-if [[ ! -f "package.json" ]] || [[ ! -f "install.sh" ]]; then
-    print_error "No se encuentra en el directorio correcto del proyecto."
-    print_warning "Asegúrate de estar en el directorio sonic-admin-lite"
-    print_warning "Ejecuta: cd ~/sonic-admin-lite (o donde hayas clonado el proyecto)"
-    exit 1
-fi
-
 # Verificar Ubuntu 22.04
 if ! grep -q "Ubuntu 22.04" /etc/os-release; then
     print_warning "Este script está optimizado para Ubuntu 22.04."
-    read -p "¿Continuar de todos modos? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+    print_warning "Continuando con la instalación..."
 fi
 
 print_status "Iniciando instalación del SonicAdmin Lite..."
@@ -113,7 +109,7 @@ print_status "Configurando Apache2..."
 sudo systemctl enable apache2 >/dev/null 2>&1
 sudo systemctl start apache2
 
-# Pre-configurar MySQL para instalación no interactiva
+# Configurar MySQL automáticamente
 print_status "Configurando MySQL para instalación automática..."
 sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password password SonicAdmin2024!'
 sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password SonicAdmin2024!'
@@ -173,10 +169,15 @@ print_status "Instalando dependencias del proyecto..."
 cd $PROJECT_DIR
 npm install --silent
 
+# Cambiar puerto de Apache a 7000
+print_status "Configurando Apache para puerto 7000..."
+sudo sed -i 's/Listen 80/Listen 7000/' /etc/apache2/ports.conf
+sudo sed -i 's/<VirtualHost \*:80>/<VirtualHost *:7000>/' /etc/apache2/sites-available/000-default.conf
+
 # Configurar Apache Virtual Host
 print_status "Configurando Apache Virtual Host..."
 sudo tee /etc/apache2/sites-available/sonic-admin.conf > /dev/null << EOF
-<VirtualHost *:80>
+<VirtualHost *:7000>
     ServerName sonic-admin.local
     DocumentRoot $PROJECT_DIR/dist
     
@@ -195,7 +196,7 @@ sudo tee /etc/apache2/sites-available/sonic-admin.conf > /dev/null << EOF
         RewriteRule . /index.html [L]
     </Directory>
 
-    # Proxy para desarrollo (puerto 5173)
+    # Proxy para desarrollo (puerto 3000)
     ProxyPreserveHost On
     ProxyPass /api/ http://localhost:3000/api/
     ProxyPassReverse /api/ http://localhost:3000/api/
@@ -221,19 +222,18 @@ sudo systemctl restart apache2
 # Configurar firewall básico
 print_status "Configurando firewall..."
 sudo ufw allow 22/tcp >/dev/null 2>&1
-sudo ufw allow 80/tcp >/dev/null 2>&1
+sudo ufw allow 7000/tcp >/dev/null 2>&1
 sudo ufw allow 443/tcp >/dev/null 2>&1
 sudo ufw allow 8000:8100/tcp >/dev/null 2>&1
 sudo ufw --force enable >/dev/null 2>&1
 
-# Crear base de datos
+# Crear base de datos (corregido)
 print_status "Creando base de datos..."
-mysql -u root -pSonicAdmin2024! << EOF
+sudo mysql -u root -pSonicAdmin2024! << 'EOF'
 CREATE DATABASE IF NOT EXISTS sonic_admin;
 CREATE USER IF NOT EXISTS 'sonic_admin'@'localhost' IDENTIFIED BY 'SonicAdmin2024!';
 GRANT ALL PRIVILEGES ON sonic_admin.* TO 'sonic_admin'@'localhost';
 FLUSH PRIVILEGES;
-EXIT;
 EOF
 
 # Crear archivo de configuración
@@ -314,7 +314,7 @@ echo ""
 echo "=================================================================="
 echo -e "${GREEN}INFORMACIÓN DE ACCESO:${NC}"
 echo "=================================================================="
-echo "• URL del Panel: http://$(hostname -I | awk '{print $1}')"
+echo "• URL del Panel: http://$(hostname -I | awk '{print $1}'):7000"
 echo "• Usuario: admin"
 echo "• Contraseña: admin123"
 echo ""
@@ -325,14 +325,14 @@ echo ""
 echo "=================================================================="
 echo -e "${GREEN}SERVICIOS INSTALADOS:${NC}"
 echo "=================================================================="
-echo "• Apache2: $(systemctl is-active apache2)"
+echo "• Apache2 (Puerto 7000): $(systemctl is-active apache2)"
 echo "• MySQL: $(systemctl is-active mysql)"
 echo "• Icecast2: $(systemctl is-active icecast2)"
 echo ""
 echo "=================================================================="
 echo -e "${YELLOW}PRÓXIMOS PASOS:${NC}"
 echo "=================================================================="
-echo "1. Accede al panel web en http://$(hostname -I | awk '{print $1}')"
+echo "1. Accede al panel web en http://$(hostname -I | awk '{print $1}'):7000"
 echo "2. Inicia sesión con: admin / admin123"
 echo "3. Configura los ajustes del servidor en Settings"
 echo "4. ¡Comienza a gestionar radios!"
@@ -342,4 +342,4 @@ echo "• Iniciar desarrollo: cd $PROJECT_DIR && npm run dev"
 echo "• Ver logs: sudo tail -f /var/log/apache2/sonic_admin_error.log"
 echo "• Reiniciar servicios: sudo systemctl restart sonic-admin apache2"
 echo ""
-print_success "¡SonicAdmin Lite está listo para usar!"
+print_success "¡SonicAdmin Lite está listo para usar en el puerto 7000!"
