@@ -1,7 +1,7 @@
 
 #!/bin/bash
 
-# RadioPanel - Script de instalación para Ubuntu Server 22.04
+# SonicAdmin Lite - Script de instalación para Ubuntu Server 22.04
 # Este script instala todas las dependencias necesarias para el panel de administración de radios
 
 set -e
@@ -38,12 +38,18 @@ fi
 
 # Banner
 echo -e "${BLUE}"
-echo "██████╗  █████╗ ██████╗ ██╗ ██████╗ ██████╗  █████╗ ███╗   ██╗███████╗██╗     "
-echo "██╔══██╗██╔══██╗██╔══██╗██║██╔═══██╗██╔══██╗██╔══██╗████╗  ██║██╔════╝██║     "
-echo "██████╔╝███████║██║  ██║██║██║   ██║██████╔╝███████║██╔██╗ ██║█████╗  ██║     "
-echo "██╔══██╗██╔══██║██║  ██║██║██║   ██║██╔═══╝ ██╔══██║██║╚██╗██║██╔══╝  ██║     "
-echo "██║  ██║██║  ██║██████╔╝██║╚██████╔╝██║     ██║  ██║██║ ╚████║███████╗███████╗"
-echo "╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝"
+echo "███████╗ ██████╗ ███╗   ██╗██╗ ██████╗     █████╗ ██████╗ ███╗   ███╗██╗███╗   ██╗"
+echo "██╔════╝██╔═══██╗████╗  ██║██║██╔════╝    ██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║"
+echo "███████╗██║   ██║██╔██╗ ██║██║██║         ███████║██║  ██║██╔████╔██║██║██╔██╗ ██║"
+echo "╚════██║██║   ██║██║╚██╗██║██║██║         ██╔══██║██║  ██║██║╚██╔╝██║██║██║╚██╗██║"
+echo "███████║╚██████╔╝██║ ╚████║██║╚██████╗    ██║  ██║██████╔╝██║ ╚═╝ ██║██║██║ ╚████║"
+echo "╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝ ╚═════╝    ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝"
+echo "██╗     ██╗████████╗███████╗"
+echo "██║     ██║╚══██╔══╝██╔════╝"
+echo "██║     ██║   ██║   █████╗  "
+echo "██║     ██║   ██║   ██╔══╝  "
+echo "███████╗██║   ██║   ███████╗"
+echo "╚══════╝╚═╝   ╚═╝   ╚══════╝"
 echo -e "${NC}"
 echo "Panel de Administración de Radios - Instalador v1.0"
 echo "=================================================================="
@@ -58,7 +64,7 @@ if ! grep -q "Ubuntu 22.04" /etc/os-release; then
     fi
 fi
 
-print_status "Iniciando instalación del RadioPanel..."
+print_status "Iniciando instalación del SonicAdmin Lite..."
 
 # Actualizar sistema
 print_status "Actualizando el sistema..."
@@ -66,7 +72,7 @@ sudo apt update && sudo apt upgrade -y
 
 # Instalar dependencias del sistema
 print_status "Instalando dependencias del sistema..."
-sudo apt install -y curl wget gnupg2 software-properties-common apt-transport-https ca-certificates
+sudo apt install -y curl wget gnupg2 software-properties-common apt-transport-https ca-certificates git
 
 # Instalar Node.js 18.x
 print_status "Instalando Node.js 18.x..."
@@ -127,52 +133,29 @@ print_status "Configurando Icecast2..."
 sudo systemctl enable icecast2
 
 # Crear directorio para el proyecto
-PROJECT_DIR="/var/www/radiopanel"
+PROJECT_DIR="/var/www/sonic-admin-lite"
 print_status "Creando directorio del proyecto en $PROJECT_DIR..."
 sudo mkdir -p $PROJECT_DIR
 sudo chown -R $USER:www-data $PROJECT_DIR
 sudo chmod -R 755 $PROJECT_DIR
 
-# Clonar o descargar el proyecto (simulado)
-print_status "Preparando archivos del proyecto..."
-cd $PROJECT_DIR
-
-# Crear estructura básica del proyecto
-cat > package.json << EOF
-{
-  "name": "radiopanel-admin",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc && vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "start": "npm run build && npm run preview"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.4"
-  }
-}
-EOF
+# Clonar el proyecto desde GitHub
+print_status "Clonando el proyecto desde GitHub..."
+cd /tmp
+git clone https://github.com/kambire/sonic-admin-lite.git
+sudo cp -r sonic-admin-lite/* $PROJECT_DIR/
+sudo chown -R $USER:www-data $PROJECT_DIR
 
 # Instalar dependencias del proyecto
 print_status "Instalando dependencias del proyecto..."
+cd $PROJECT_DIR
 npm install
 
 # Configurar Apache Virtual Host
 print_status "Configurando Apache Virtual Host..."
-sudo tee /etc/apache2/sites-available/radiopanel.conf > /dev/null << EOF
+sudo tee /etc/apache2/sites-available/sonic-admin.conf > /dev/null << EOF
 <VirtualHost *:80>
-    ServerName radiopanel.local
+    ServerName sonic-admin.local
     DocumentRoot $PROJECT_DIR/dist
     
     <Directory $PROJECT_DIR/dist>
@@ -195,8 +178,8 @@ sudo tee /etc/apache2/sites-available/radiopanel.conf > /dev/null << EOF
     ProxyPass /api/ http://localhost:3000/api/
     ProxyPassReverse /api/ http://localhost:3000/api/
 
-    ErrorLog \${APACHE_LOG_DIR}/radiopanel_error.log
-    CustomLog \${APACHE_LOG_DIR}/radiopanel_access.log combined
+    ErrorLog \${APACHE_LOG_DIR}/sonic_admin_error.log
+    CustomLog \${APACHE_LOG_DIR}/sonic_admin_access.log combined
 </VirtualHost>
 EOF
 
@@ -207,7 +190,7 @@ sudo a2enmod proxy
 sudo a2enmod proxy_http
 
 # Habilitar el sitio
-sudo a2ensite radiopanel.conf
+sudo a2ensite sonic-admin.conf
 sudo a2dissite 000-default.conf
 
 # Reiniciar Apache
@@ -225,9 +208,9 @@ sudo ufw --force enable
 print_status "Creando base de datos..."
 print_warning "Ingresa la contraseña de root de MySQL cuando se solicite:"
 mysql -u root -p << EOF
-CREATE DATABASE IF NOT EXISTS radiopanel;
-CREATE USER IF NOT EXISTS 'radiopanel'@'localhost' IDENTIFIED BY 'RadioPanel2024!';
-GRANT ALL PRIVILEGES ON radiopanel.* TO 'radiopanel'@'localhost';
+CREATE DATABASE IF NOT EXISTS sonic_admin;
+CREATE USER IF NOT EXISTS 'sonic_admin'@'localhost' IDENTIFIED BY 'SonicAdmin2024!';
+GRANT ALL PRIVILEGES ON sonic_admin.* TO 'sonic_admin'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 EOF
@@ -238,9 +221,9 @@ cat > $PROJECT_DIR/.env << EOF
 # Configuración de la base de datos
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=radiopanel
-DB_USER=radiopanel
-DB_PASS=RadioPanel2024!
+DB_NAME=sonic_admin
+DB_USER=sonic_admin
+DB_PASS=SonicAdmin2024!
 
 # Configuración del servidor
 SERVER_PORT=3000
@@ -256,7 +239,7 @@ ADMIN_EMAIL=admin@localhost
 
 # Claves de seguridad (cambiar en producción)
 JWT_SECRET=supersecretkey123456789
-API_KEY=radiopanel_api_key_2024
+API_KEY=sonic_admin_api_key_2024
 
 # Configuración SMTP (opcional)
 SMTP_HOST=
@@ -264,6 +247,11 @@ SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
 EOF
+
+# Construir el proyecto
+print_status "Construyendo el proyecto para producción..."
+cd $PROJECT_DIR
+npm run build
 
 # Configurar permisos
 print_status "Configurando permisos..."
@@ -273,9 +261,9 @@ sudo chmod 600 $PROJECT_DIR/.env
 
 # Crear servicio systemd para el desarrollo
 print_status "Creando servicio systemd..."
-sudo tee /etc/systemd/system/radiopanel.service > /dev/null << EOF
+sudo tee /etc/systemd/system/sonic-admin.service > /dev/null << EOF
 [Unit]
-Description=RadioPanel Admin Interface
+Description=SonicAdmin Lite Interface
 After=network.target
 
 [Service]
@@ -292,7 +280,7 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable radiopanel
+sudo systemctl enable sonic-admin
 
 # Mostrar información final
 print_success "¡Instalación completada!"
@@ -305,7 +293,7 @@ echo "• Usuario: admin"
 echo "• Contraseña: admin123"
 echo ""
 echo "• Directorio del proyecto: $PROJECT_DIR"
-echo "• Logs de Apache: /var/log/apache2/radiopanel_*.log"
+echo "• Logs de Apache: /var/log/apache2/sonic_admin_*.log"
 echo "• Configuración: $PROJECT_DIR/.env"
 echo ""
 echo "=================================================================="
@@ -329,7 +317,12 @@ echo "5. ¡Comienza a gestionar radios!"
 echo ""
 echo -e "${YELLOW}COMANDOS ÚTILES:${NC}"
 echo "• Iniciar desarrollo: cd $PROJECT_DIR && npm run dev"
-echo "• Ver logs: sudo tail -f /var/log/apache2/radiopanel_error.log"
-echo "• Reiniciar servicios: sudo systemctl restart radiopanel apache2"
+echo "• Ver logs: sudo tail -f /var/log/apache2/sonic_admin_error.log"
+echo "• Reiniciar servicios: sudo systemctl restart sonic-admin apache2"
+echo "• Actualizar proyecto: cd $PROJECT_DIR && git pull && npm install && npm run build"
 echo ""
-print_success "¡RadioPanel está listo para usar!"
+echo -e "${BLUE}REPOSITORIO:${NC}"
+echo "• GitHub: https://github.com/kambire/sonic-admin-lite"
+echo "• Issues: https://github.com/kambire/sonic-admin-lite/issues"
+echo ""
+print_success "¡SonicAdmin Lite está listo para usar!"

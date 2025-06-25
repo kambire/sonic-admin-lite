@@ -1,9 +1,9 @@
 
-# 🎵 RadioPanel Admin
+# 🎵 SonicAdmin Lite
 
 <div align="center">
 
-![RadioPanel Logo](https://via.placeholder.com/400x150/4F46E5/FFFFFF?text=RadioPanel+Admin)
+![SonicAdmin Logo](https://via.placeholder.com/400x150/4F46E5/FFFFFF?text=SonicAdmin+Lite)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
@@ -12,7 +12,7 @@
 
 **Panel de administración moderno y potente para gestión de radios Shoutcast/Icecast**
 
-[🚀 Demo en Vivo](https://radiopanel-demo.lovable.app) · [📖 Documentación](#-características) · [🐛 Reportar Bug](https://github.com/tu-usuario/radiopanel/issues) · [💡 Solicitar Feature](https://github.com/tu-usuario/radiopanel/issues)
+[🚀 Demo en Vivo](https://sonic-admin-lite.lovable.app) · [📖 Documentación](#-características) · [🐛 Reportar Bug](https://github.com/kambire/sonic-admin-lite/issues) · [💡 Solicitar Feature](https://github.com/kambire/sonic-admin-lite/issues)
 
 </div>
 
@@ -83,7 +83,7 @@
 
 ```bash
 # Descargar e instalar
-wget https://raw.githubusercontent.com/tu-usuario/radiopanel/main/install.sh
+wget https://raw.githubusercontent.com/kambire/sonic-admin-lite/main/install.sh
 chmod +x install.sh
 ./install.sh
 ```
@@ -92,8 +92,8 @@ chmod +x install.sh
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/radiopanel.git
-cd radiopanel
+git clone https://github.com/kambire/sonic-admin-lite.git
+cd sonic-admin-lite
 
 # Instalar dependencias
 npm install
@@ -119,8 +119,8 @@ npm start
 # Base de datos
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=radiopanel
-DB_USER=radiopanel
+DB_NAME=sonic_admin
+DB_USER=sonic_admin
 DB_PASS=tu_password_seguro
 
 # Servidor
@@ -133,7 +133,7 @@ ICECAST_PATH=/etc/icecast2
 
 # Seguridad
 JWT_SECRET=tu_jwt_secret_muy_seguro
-API_KEY=tu_api_key_unica
+API_KEY=sonic_admin_api_key_2024
 
 # Email (Opcional)
 SMTP_HOST=smtp.gmail.com
@@ -286,8 +286,8 @@ PATCH /api/radios/:id/status
 
 ```bash
 # Fork y clonar
-git clone https://github.com/tu-usuario/radiopanel.git
-cd radiopanel
+git clone https://github.com/kambire/sonic-admin-lite.git
+cd sonic-admin-lite
 
 # Instalar dependencias
 npm install
@@ -310,17 +310,17 @@ npm run dev
 
 ### 🆘 **¿Necesitas Ayuda?**
 
-- 📧 **Email**: support@radiopanel.com
-- 💬 **Discord**: [Únete a nuestro servidor](https://discord.gg/radiopanel)
-- 📱 **Telegram**: [@RadioPanelSupport](https://t.me/RadioPanelSupport)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/tu-usuario/radiopanel/issues)
+- 📧 **Email**: support@sonicadmin.com
+- 💬 **Discord**: [Únete a nuestro servidor](https://discord.gg/sonicadmin)
+- 📱 **Telegram**: [@SonicAdminSupport](https://t.me/SonicAdminSupport)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/kambire/sonic-admin-lite/issues)
 
 ### 📚 **Recursos**
 
-- [📖 Documentación Completa](https://docs.radiopanel.com)
-- [🎥 Video Tutoriales](https://youtube.com/radiopanel)
-- [❓ FAQ](https://docs.radiopanel.com/faq)
-- [🔧 Troubleshooting](https://docs.radiopanel.com/troubleshooting)
+- [📖 Documentación Completa](https://docs.sonicadmin.com)
+- [🎥 Video Tutoriales](https://youtube.com/sonicadmin)
+- [❓ FAQ](https://docs.sonicadmin.com/faq)
+- [🔧 Troubleshooting](https://docs.sonicadmin.com/troubleshooting)
 
 ---
 
@@ -331,7 +331,7 @@ Este proyecto está bajo la licencia **MIT**. Ver [LICENSE](LICENSE) para más d
 ```
 MIT License
 
-Copyright (c) 2024 RadioPanel
+Copyright (c) 2024 SonicAdmin Lite
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -358,7 +358,7 @@ copies or substantial portions of the Software.
 
 ### 🏆 **Sponsors**
 
-¿Quieres ser sponsor? [Contáctanos](mailto:sponsor@radiopanel.com)
+¿Quieres ser sponsor? [Contáctanos](mailto:sponsor@sonicadmin.com)
 
 ---
 
@@ -366,8 +366,8 @@ copies or substantial portions of the Software.
 
 ### 🚀 **¡Hecho con ❤️ para la comunidad de radio!**
 
-[⭐ Dale una estrella](https://github.com/tu-usuario/radiopanel) · [🔄 Hacer Fork](https://github.com/tu-usuario/radiopanel/fork) · [📢 Compartir](https://twitter.com/intent/tweet?text=Check%20out%20RadioPanel%20-%20Modern%20radio%20management%20panel&url=https://github.com/tu-usuario/radiopanel)
+[⭐ Dale una estrella](https://github.com/kambire/sonic-admin-lite) · [🔄 Hacer Fork](https://github.com/kambire/sonic-admin-lite/fork) · [📢 Compartir](https://twitter.com/intent/tweet?text=Check%20out%20SonicAdmin%20Lite%20-%20Modern%20radio%20management%20panel&url=https://github.com/kambire/sonic-admin-lite)
 
-**[⬆️ Volver arriba](#-radiopanel-admin)**
+**[⬆️ Volver arriba](#-sonicadmin-lite)**
 
 </div>
