@@ -32,7 +32,12 @@ print_error() {
 
 # Verificar si se ejecuta como root
 if [[ $EUID -eq 0 ]]; then
-   print_error "Este script no debe ejecutarse como root. Usa un usuario con privilegios sudo."
+   print_error "Este script no debe ejecutarse como root."
+   print_warning "Por favor, cambia a un usuario normal con privilegios sudo:"
+   echo -e "${YELLOW}   exit${NC}                    # Salir de root"
+   echo -e "${YELLOW}   su - sonic${NC}              # Cambiar al usuario sonic"
+   echo -e "${YELLOW}   cd /sonic-admin-lite${NC}    # Ir al directorio del proyecto"
+   echo -e "${YELLOW}   ./install.sh${NC}            # Ejecutar el script"
    exit 1
 fi
 
@@ -54,6 +59,14 @@ echo -e "${NC}"
 echo "Panel de Administración de Radios - Instalador v1.0"
 echo "=================================================================="
 echo ""
+
+# Verificar si estamos en el directorio correcto
+if [[ ! -f "package.json" ]] || [[ ! -f "install.sh" ]]; then
+    print_error "No se encuentra en el directorio correcto del proyecto."
+    print_warning "Asegúrate de estar en el directorio sonic-admin-lite"
+    print_warning "Ejecuta: cd /sonic-admin-lite (o donde hayas clonado el proyecto)"
+    exit 1
+fi
 
 # Verificar Ubuntu 22.04
 if ! grep -q "Ubuntu 22.04" /etc/os-release; then
@@ -122,6 +135,7 @@ if [[ "$install_shoutcast" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     sudo tar -xzf sc_serv2_linux_x64-latest.tar.gz -C /opt/shoutcast
     sudo chown -R www-data:www-data /opt/shoutcast
     print_success "Shoutcast Server instalado en /opt/shoutcast"
+    cd - # Volver al directorio anterior
 fi
 
 # Instalar Icecast2
@@ -132,18 +146,19 @@ sudo apt install -y icecast2
 print_status "Configurando Icecast2..."
 sudo systemctl enable icecast2
 
-# Crear directorio para el proyecto
+# Obtener el directorio actual del proyecto
+CURRENT_DIR=$(pwd)
 PROJECT_DIR="/var/www/sonic-admin-lite"
+
+# Crear directorio para el proyecto
 print_status "Creando directorio del proyecto en $PROJECT_DIR..."
 sudo mkdir -p $PROJECT_DIR
 sudo chown -R $USER:www-data $PROJECT_DIR
 sudo chmod -R 755 $PROJECT_DIR
 
-# Clonar el proyecto desde GitHub
-print_status "Clonando el proyecto desde GitHub..."
-cd /tmp
-git clone https://github.com/kambire/sonic-admin-lite.git
-sudo cp -r sonic-admin-lite/* $PROJECT_DIR/
+# Copiar archivos del proyecto actual
+print_status "Copiando archivos del proyecto..."
+sudo cp -r $CURRENT_DIR/* $PROJECT_DIR/
 sudo chown -R $USER:www-data $PROJECT_DIR
 
 # Instalar dependencias del proyecto

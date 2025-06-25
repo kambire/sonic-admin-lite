@@ -53,23 +53,6 @@
 
 ---
 
-## 🖼️ Capturas de Pantalla
-
-<div align="center">
-
-### 🏠 Dashboard Principal
-![Dashboard](https://via.placeholder.com/800x400/F8FAFC/64748B?text=Dashboard+Principal)
-
-### 📻 Gestión de Radios
-![Radios](https://via.placeholder.com/800x400/EFF6FF/3B82F6?text=Gestión+de+Radios)
-
-### 👨‍💼 Administración de Clientes
-![Clientes](https://via.placeholder.com/800x400/F0FDF4/10B981?text=Gestión+de+Clientes)
-
-</div>
-
----
-
 ## 🚀 Instalación Rápida
 
 ### 📋 Requisitos Previos
@@ -78,12 +61,32 @@
 - **RAM**: Mínimo 2GB (4GB recomendado)
 - **Espacio**: 20GB libres
 - **Red**: Acceso a internet para descargas
+- **Usuario**: Usuario con privilegios sudo (NO ejecutar como root)
 
 ### ⚡ Instalación Automática
 
 ```bash
-# Descargar e instalar
-wget https://raw.githubusercontent.com/kambire/sonic-admin-lite/main/install.sh
+# 1. Clonar el repositorio
+git clone https://github.com/kambire/sonic-admin-lite.git
+
+# 2. Cambiar al directorio del proyecto
+cd sonic-admin-lite
+
+# 3. Dar permisos de ejecución al script
+chmod +x install.sh
+
+# 4. Ejecutar el instalador (IMPORTANTE: NO como root)
+./install.sh
+```
+
+> ⚠️ **IMPORTANTE**: NO ejecutes el script como root. Usa un usuario normal con privilegios sudo.
+
+### 🔧 Si ya clonaste como root:
+
+```bash
+# Si ya clonaste el proyecto como root, ejecuta estos comandos:
+sudo chown -R $USER:$USER /sonic-admin-lite
+cd /sonic-admin-lite
 chmod +x install.sh
 ./install.sh
 ```
@@ -174,6 +177,49 @@ Abre tu navegador en `http://tu-servidor-ip`
 
 ---
 
+## 🐛 Solución de Problemas
+
+### 🚫 **Error: "Permission denied" al ejecutar install.sh**
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+### 🚫 **Error: "Este script no debe ejecutarse como root"**
+```bash
+# Salir de root
+exit
+
+# Cambiar a usuario normal
+su - tu_usuario
+
+# Ir al directorio del proyecto
+cd /ruta/al/sonic-admin-lite
+
+# Ejecutar el script
+./install.sh
+```
+
+### 🚫 **Error: Node.js no encontrado**
+```bash
+# Verificar instalación de Node.js
+node --version
+npm --version
+
+# Si no está instalado, el script lo instalará automáticamente
+```
+
+### 🚫 **Error de permisos en MySQL**
+```bash
+# Reiniciar MySQL
+sudo systemctl restart mysql
+
+# Verificar estado
+sudo systemctl status mysql
+```
+
+---
+
 ## 🏗️ Arquitectura Técnica
 
 ### 🎨 **Frontend**
@@ -234,50 +280,6 @@ PATCH /api/radios/:id/status
 
 ---
 
-## 🎛️ Características Avanzadas
-
-### 🔄 **AutoDJ**
-- Reproducción automática 24/7
-- Gestión de playlist
-- Crossfade y efectos
-- Programación horaria
-
-### 📊 **Monitoreo**
-- Oyentes en tiempo real
-- Estadísticas de uso
-- Logs de conexión
-- Alertas automáticas
-
-### 🌐 **Multi-servidor**
-- Balanceador de carga
-- Redundancia automática
-- CDN integration
-- Geo-distribución
-
----
-
-## 🚀 Roadmap
-
-### 📅 **Q1 2024**
-- [ ] 🎵 Player web integrado
-- [ ] 📱 App móvil nativa
-- [ ] 🔌 API SonicPanel completa
-- [ ] 📈 Analytics avanzados
-
-### 📅 **Q2 2024**
-- [ ] 🤖 IA para recomendaciones
-- [ ] 🎙️ Grabación de programas
-- [ ] 💰 Facturación automática
-- [ ] 🌍 Multi-idioma
-
-### 📅 **Q3 2024**
-- [ ] ☁️ Migración cloud
-- [ ] 🔐 2FA avanzado
-- [ ] 📺 Streaming video
-- [ ] 🎪 Eventos en vivo
-
----
-
 ## 🤝 Contribuir
 
 ¡Las contribuciones son bienvenidas! 
@@ -328,22 +330,6 @@ npm run dev
 
 Este proyecto está bajo la licencia **MIT**. Ver [LICENSE](LICENSE) para más detalles.
 
-```
-MIT License
-
-Copyright (c) 2024 SonicAdmin Lite
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-```
-
 ---
 
 ## 🌟 Agradecimientos
@@ -355,10 +341,6 @@ copies or substantial portions of the Software.
 - [Shadcn](https://ui.shadcn.com/) por los componentes hermosos
 - [Lucide](https://lucide.dev/) por los iconos perfectos
 - [Lovable](https://lovable.dev/) por el hosting y desarrollo
-
-### 🏆 **Sponsors**
-
-¿Quieres ser sponsor? [Contáctanos](mailto:sponsor@sonicadmin.com)
 
 ---
 
