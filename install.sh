@@ -56,7 +56,7 @@ echo "██║     ██║   ██║   ██╔══╝  "
 echo "███████╗██║   ██║   ███████╗"
 echo "╚══════╝╚═╝   ╚═╝   ╚══════╝"
 echo -e "${NC}"
-echo "Panel de Administración de Radios - Instalador v1.0"
+echo "Panel de Administración de Radios - Instalador v1.1"
 echo "=================================================================="
 echo ""
 
@@ -64,33 +64,39 @@ echo ""
 if [[ ! -f "package.json" ]] || [[ ! -f "install.sh" ]]; then
     print_error "No se encuentra en el directorio correcto del proyecto."
     print_warning "Asegúrate de estar en el directorio sonic-admin-lite"
-    print_warning "Ejecuta: cd /sonic-admin-lite (o donde hayas clonado el proyecto)"
+    print_warning "Ejecuta: cd ~/sonic-admin-lite (o donde hayas clonado el proyecto)"
     exit 1
 fi
 
 # Verificar Ubuntu 22.04
 if ! grep -q "Ubuntu 22.04" /etc/os-release; then
-    print_warning "Este script está optimizado para Ubuntu 22.04. ¿Continuar? (y/n)"
-    read -r response
-    if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+    print_warning "Este script está optimizado para Ubuntu 22.04."
+    read -p "¿Continuar de todos modos? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
 fi
 
 print_status "Iniciando instalación del SonicAdmin Lite..."
 
+# Configurar instalación no interactiva
+export DEBIAN_FRONTEND=noninteractive
+
 # Actualizar sistema
 print_status "Actualizando el sistema..."
-sudo apt update && sudo apt upgrade -y
+sudo apt update -qq && sudo apt upgrade -y -qq
 
 # Instalar dependencias del sistema
 print_status "Instalando dependencias del sistema..."
-sudo apt install -y curl wget gnupg2 software-properties-common apt-transport-https ca-certificates git
+sudo apt install -y -qq curl wget gnupg2 software-properties-common apt-transport-https ca-certificates git
 
 # Instalar Node.js 18.x
 print_status "Instalando Node.js 18.x..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
+if ! command -v node &> /dev/null; then
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt install -y -qq nodejs
+fi
 
 # Verificar instalación de Node.js
 NODE_VERSION=$(node --version)
@@ -100,51 +106,52 @@ print_success "npm instalado: $NPM_VERSION"
 
 # Instalar Apache2
 print_status "Instalando Apache2..."
-sudo apt install -y apache2
+sudo apt install -y -qq apache2
 
 # Configurar Apache2
 print_status "Configurando Apache2..."
-sudo systemctl enable apache2
+sudo systemctl enable apache2 >/dev/null 2>&1
 sudo systemctl start apache2
+
+# Pre-configurar MySQL para instalación no interactiva
+print_status "Configurando MySQL para instalación automática..."
+sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password password SonicAdmin2024!'
+sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password SonicAdmin2024!'
 
 # Instalar MySQL
 print_status "Instalando MySQL Server..."
-sudo apt install -y mysql-server
+sudo apt install -y -qq mysql-server
 
 # Configurar MySQL
 print_status "Configurando MySQL..."
-sudo systemctl enable mysql
+sudo systemctl enable mysql >/dev/null 2>&1
 sudo systemctl start mysql
 
-print_warning "Configurando MySQL de forma segura..."
-print_warning "Se te pedirá configurar la contraseña de root de MySQL"
-sudo mysql_secure_installation
+# Configuración automática de MySQL
+print_status "Configurando seguridad de MySQL..."
+sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'SonicAdmin2024!';" 2>/dev/null || true
+sudo mysql -u root -pSonicAdmin2024! -e "DELETE FROM mysql.user WHERE User='';" 2>/dev/null || true
+sudo mysql -u root -pSonicAdmin2024! -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');" 2>/dev/null || true
+sudo mysql -u root -pSonicAdmin2024! -e "DROP DATABASE IF EXISTS test;" 2>/dev/null || true
+sudo mysql -u root -pSonicAdmin2024! -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';" 2>/dev/null || true
+sudo mysql -u root -pSonicAdmin2024! -e "FLUSH PRIVILEGES;" 2>/dev/null || true
 
-# Instalar PHP 8.1
+# Instalar PHP 8.1 (corregido - sin php8.1-json que no existe)
 print_status "Instalando PHP 8.1 y extensiones..."
-sudo apt install -y php8.1 php8.1-cli php8.1-mysql php8.1-curl php8.1-json php8.1-mbstring php8.1-xml php8.1-zip libapache2-mod-php8.1
+sudo apt install -y -qq php8.1 php8.1-cli php8.1-mysql php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip libapache2-mod-php8.1
 
-# Instalar Shoutcast (opcional)
-print_warning "¿Deseas instalar Shoutcast Server? (y/n)"
-read -r install_shoutcast
-if [[ "$install_shoutcast" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    print_status "Descargando Shoutcast Server..."
-    cd /tmp
-    wget http://download.nullsoft.com/shoutcast/tools/sc_serv2_linux_x64-latest.tar.gz
-    sudo mkdir -p /opt/shoutcast
-    sudo tar -xzf sc_serv2_linux_x64-latest.tar.gz -C /opt/shoutcast
-    sudo chown -R www-data:www-data /opt/shoutcast
-    print_success "Shoutcast Server instalado en /opt/shoutcast"
-    cd - # Volver al directorio anterior
-fi
-
-# Instalar Icecast2
+# Instalar Icecast2 de forma no interactiva
 print_status "Instalando Icecast2..."
-sudo apt install -y icecast2
+echo "icecast2 icecast2/icecast-setup boolean true" | sudo debconf-set-selections
+echo "icecast2 icecast2/hostname string localhost" | sudo debconf-set-selections
+echo "icecast2 icecast2/sourcepassword password SonicAdmin2024!" | sudo debconf-set-selections
+echo "icecast2 icecast2/relaypassword password SonicAdmin2024!" | sudo debconf-set-selections
+echo "icecast2 icecast2/adminpassword password SonicAdmin2024!" | sudo debconf-set-selections
+sudo apt install -y -qq icecast2
 
 # Configurar Icecast2
 print_status "Configurando Icecast2..."
-sudo systemctl enable icecast2
+sudo systemctl enable icecast2 >/dev/null 2>&1
 
 # Obtener el directorio actual del proyecto
 CURRENT_DIR=$(pwd)
@@ -164,7 +171,7 @@ sudo chown -R $USER:www-data $PROJECT_DIR
 # Instalar dependencias del proyecto
 print_status "Instalando dependencias del proyecto..."
 cd $PROJECT_DIR
-npm install
+npm install --silent
 
 # Configurar Apache Virtual Host
 print_status "Configurando Apache Virtual Host..."
@@ -200,29 +207,28 @@ EOF
 
 # Habilitar módulos de Apache
 print_status "Habilitando módulos de Apache..."
-sudo a2enmod rewrite
-sudo a2enmod proxy
-sudo a2enmod proxy_http
+sudo a2enmod rewrite >/dev/null 2>&1
+sudo a2enmod proxy >/dev/null 2>&1
+sudo a2enmod proxy_http >/dev/null 2>&1
 
 # Habilitar el sitio
-sudo a2ensite sonic-admin.conf
-sudo a2dissite 000-default.conf
+sudo a2ensite sonic-admin.conf >/dev/null 2>&1
+sudo a2dissite 000-default.conf >/dev/null 2>&1
 
 # Reiniciar Apache
 sudo systemctl restart apache2
 
 # Configurar firewall básico
 print_status "Configurando firewall..."
-sudo ufw allow 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 8000:8100/tcp  # Puertos para streams
-sudo ufw --force enable
+sudo ufw allow 22/tcp >/dev/null 2>&1
+sudo ufw allow 80/tcp >/dev/null 2>&1
+sudo ufw allow 443/tcp >/dev/null 2>&1
+sudo ufw allow 8000:8100/tcp >/dev/null 2>&1
+sudo ufw --force enable >/dev/null 2>&1
 
 # Crear base de datos
 print_status "Creando base de datos..."
-print_warning "Ingresa la contraseña de root de MySQL cuando se solicite:"
-mysql -u root -p << EOF
+mysql -u root -pSonicAdmin2024! << EOF
 CREATE DATABASE IF NOT EXISTS sonic_admin;
 CREATE USER IF NOT EXISTS 'sonic_admin'@'localhost' IDENTIFIED BY 'SonicAdmin2024!';
 GRANT ALL PRIVILEGES ON sonic_admin.* TO 'sonic_admin'@'localhost';
@@ -261,12 +267,17 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
+
+# Icecast2 passwords
+ICECAST_SOURCE_PASSWORD=SonicAdmin2024!
+ICECAST_RELAY_PASSWORD=SonicAdmin2024!
+ICECAST_ADMIN_PASSWORD=SonicAdmin2024!
 EOF
 
 # Construir el proyecto
 print_status "Construyendo el proyecto para producción..."
 cd $PROJECT_DIR
-npm run build
+npm run build --silent
 
 # Configurar permisos
 print_status "Configurando permisos..."
@@ -295,7 +306,7 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable sonic-admin
+sudo systemctl enable sonic-admin >/dev/null 2>&1
 
 # Mostrar información final
 print_success "¡Instalación completada!"
@@ -307,9 +318,9 @@ echo "• URL del Panel: http://$(hostname -I | awk '{print $1}')"
 echo "• Usuario: admin"
 echo "• Contraseña: admin123"
 echo ""
+echo "• MySQL Root Password: SonicAdmin2024!"
+echo "• Icecast Admin Password: SonicAdmin2024!"
 echo "• Directorio del proyecto: $PROJECT_DIR"
-echo "• Logs de Apache: /var/log/apache2/sonic_admin_*.log"
-echo "• Configuración: $PROJECT_DIR/.env"
 echo ""
 echo "=================================================================="
 echo -e "${GREEN}SERVICIOS INSTALADOS:${NC}"
@@ -317,27 +328,18 @@ echo "=================================================================="
 echo "• Apache2: $(systemctl is-active apache2)"
 echo "• MySQL: $(systemctl is-active mysql)"
 echo "• Icecast2: $(systemctl is-active icecast2)"
-if [[ "$install_shoutcast" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    echo "• Shoutcast: Instalado en /opt/shoutcast"
-fi
 echo ""
 echo "=================================================================="
 echo -e "${YELLOW}PRÓXIMOS PASOS:${NC}"
 echo "=================================================================="
 echo "1. Accede al panel web en http://$(hostname -I | awk '{print $1}')"
-echo "2. Inicia sesión con las credenciales proporcionadas"
-echo "3. Configura los ajustes del servidor en la sección Settings"
-echo "4. Crea tus primeros clientes y planes"
-echo "5. ¡Comienza a gestionar radios!"
+echo "2. Inicia sesión con: admin / admin123"
+echo "3. Configura los ajustes del servidor en Settings"
+echo "4. ¡Comienza a gestionar radios!"
 echo ""
 echo -e "${YELLOW}COMANDOS ÚTILES:${NC}"
 echo "• Iniciar desarrollo: cd $PROJECT_DIR && npm run dev"
 echo "• Ver logs: sudo tail -f /var/log/apache2/sonic_admin_error.log"
 echo "• Reiniciar servicios: sudo systemctl restart sonic-admin apache2"
-echo "• Actualizar proyecto: cd $PROJECT_DIR && git pull && npm install && npm run build"
-echo ""
-echo -e "${BLUE}REPOSITORIO:${NC}"
-echo "• GitHub: https://github.com/kambire/sonic-admin-lite"
-echo "• Issues: https://github.com/kambire/sonic-admin-lite/issues"
 echo ""
 print_success "¡SonicAdmin Lite está listo para usar!"
