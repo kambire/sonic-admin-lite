@@ -38,7 +38,7 @@ export default function RadiosManagement() {
     name: '',
     clientId: '',
     planId: '',
-    serverType: 'shoutcast' as const,
+    serverType: 'shoutcast' as 'shoutcast' | 'icecast',
     port: '',
     hasAutoDJ: false
   });
@@ -153,7 +153,7 @@ export default function RadiosManagement() {
       radio.id === radioId
         ? { 
             ...radio, 
-            status: radio.status === 'active' ? 'suspended' : 'active' as const,
+            status: (radio.status === 'active' ? 'suspended' : 'active') as 'active' | 'suspended' | 'offline',
             listeners: radio.status === 'active' ? 0 : radio.listeners
           }
         : radio

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -108,7 +107,7 @@ export default function ClientsManagement() {
   const toggleClientStatus = (clientId: string) => {
     const updatedClients = clients.map(client =>
       client.id === clientId
-        ? { ...client, status: client.status === 'active' ? 'suspended' : 'active' as const }
+        ? { ...client, status: (client.status === 'active' ? 'suspended' : 'active') as 'active' | 'suspended' }
         : client
     );
 
