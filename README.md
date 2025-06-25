@@ -1,73 +1,373 @@
-# Welcome to your Lovable project
 
-## Project info
+# 🎵 RadioPanel Admin
 
-**URL**: https://lovable.dev/projects/39be635f-6503-4998-8d06-410cc93fb8a0
+<div align="center">
 
-## How can I edit this code?
+![RadioPanel Logo](https://via.placeholder.com/400x150/4F46E5/FFFFFF?text=RadioPanel+Admin)
 
-There are several ways of editing your application.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4+-blue.svg)](https://tailwindcss.com/)
 
-**Use Lovable**
+**Panel de administración moderno y potente para gestión de radios Shoutcast/Icecast**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/39be635f-6503-4998-8d06-410cc93fb8a0) and start prompting.
+[🚀 Demo en Vivo](https://radiopanel-demo.lovable.app) · [📖 Documentación](#-características) · [🐛 Reportar Bug](https://github.com/tu-usuario/radiopanel/issues) · [💡 Solicitar Feature](https://github.com/tu-usuario/radiopanel/issues)
 
-Changes made via Lovable will be committed automatically to this repo.
+</div>
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## ✨ Características
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🎛️ **Gestión Completa de Radios**
+- ✅ Crear y eliminar estaciones de radio Shoutcast/Icecast
+- ✅ AutoDJ opcional para cada radio
+- ✅ Suspender/reactivar radios en tiempo real
+- ✅ Monitoreo de oyentes en vivo
+- ✅ Gestión de puertos automática
 
-Follow these steps:
+### 👥 **Administración de Clientes**
+- ✅ CRUD completo de clientes
+- ✅ Estados activo/suspendido
+- ✅ Información de contacto
+- ✅ Historial de creación
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 💰 **Planes Personalizables**
+- ✅ Configuración flexible de recursos
+- ✅ Espacio en disco, oyentes, bitrate
+- ✅ Sistema de precios
+- ✅ Características por plan
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 📊 **Dashboard Intuitivo**
+- ✅ Estadísticas en tiempo real
+- ✅ Estado de servicios del sistema
+- ✅ Gráficos de rendimiento
+- ✅ Alertas y notificaciones
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 🔐 **Seguridad Robusta**
+- ✅ Autenticación de administrador
+- ✅ Sesiones seguras
+- ✅ Roles y permisos
+- ✅ Logs de auditoría
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+---
+
+## 🖼️ Capturas de Pantalla
+
+<div align="center">
+
+### 🏠 Dashboard Principal
+![Dashboard](https://via.placeholder.com/800x400/F8FAFC/64748B?text=Dashboard+Principal)
+
+### 📻 Gestión de Radios
+![Radios](https://via.placeholder.com/800x400/EFF6FF/3B82F6?text=Gestión+de+Radios)
+
+### 👨‍💼 Administración de Clientes
+![Clientes](https://via.placeholder.com/800x400/F0FDF4/10B981?text=Gestión+de+Clientes)
+
+</div>
+
+---
+
+## 🚀 Instalación Rápida
+
+### 📋 Requisitos Previos
+
+- **Sistema Operativo**: Ubuntu Server 22.04 LTS (recomendado)
+- **RAM**: Mínimo 2GB (4GB recomendado)
+- **Espacio**: 20GB libres
+- **Red**: Acceso a internet para descargas
+
+### ⚡ Instalación Automática
+
+```bash
+# Descargar e instalar
+wget https://raw.githubusercontent.com/tu-usuario/radiopanel/main/install.sh
+chmod +x install.sh
+./install.sh
+```
+
+### 🛠️ Instalación Manual
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/tu-usuario/radiopanel.git
+cd radiopanel
+
+# Instalar dependencias
+npm install
+
+# Configurar entorno
+cp .env.example .env
+nano .env
+
+# Construir para producción
+npm run build
+
+# Iniciar servidor
+npm start
+```
+
+---
+
+## 🔧 Configuración
+
+### 🌐 Variables de Entorno
+
+```bash
+# Base de datos
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=radiopanel
+DB_USER=radiopanel
+DB_PASS=tu_password_seguro
+
+# Servidor
+SERVER_PORT=3000
+SERVER_HOST=0.0.0.0
+
+# Streaming
+SHOUTCAST_PATH=/opt/shoutcast
+ICECAST_PATH=/etc/icecast2
+
+# Seguridad
+JWT_SECRET=tu_jwt_secret_muy_seguro
+API_KEY=tu_api_key_unica
+
+# Email (Opcional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu_email@gmail.com
+SMTP_PASS=tu_password_app
+```
+
+### 🔑 Credenciales por Defecto
+
+- **Usuario**: `admin`
+- **Contraseña**: `admin123`
+
+> ⚠️ **Importante**: Cambia estas credenciales en producción
+
+---
+
+## 🎯 Uso
+
+### 1️⃣ **Acceder al Panel**
+Abre tu navegador en `http://tu-servidor-ip`
+
+### 2️⃣ **Configurar Planes**
+1. Ve a **Planes** → **Nuevo Plan**
+2. Define recursos (espacio, oyentes, bitrate)
+3. Establece precio y características
+
+### 3️⃣ **Crear Clientes**
+1. Ve a **Clientes** → **Nuevo Cliente**
+2. Completa información de contacto
+3. Asigna estado activo
+
+### 4️⃣ **Crear Radios**
+1. Ve a **Radios** → **Nueva Radio**
+2. Selecciona cliente y plan
+3. Configura Shoutcast/Icecast
+4. ¡Activa AutoDJ si es necesario!
+
+---
+
+## 🏗️ Arquitectura Técnica
+
+### 🎨 **Frontend**
+- **React 18.3** con TypeScript
+- **Tailwind CSS** para styling
+- **Shadcn/UI** componentes
+- **Lucide React** iconografía
+- **Vite** build tool
+
+### ⚙️ **Backend Simulado**
+- **LocalStorage** para datos de demo
+- **Context API** para estado global
+- **React Query** para manejo de datos
+- **Hooks personalizados** para lógica
+
+### 🗄️ **Base de Datos**
+- **MySQL 8.0** (producción)
+- **Estructura normalizada**
+- **Índices optimizados**
+- **Backups automáticos**
+
+---
+
+## 📡 API Reference
+
+### 🔐 Autenticación
+
+```typescript
+POST /api/auth/login
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+### 📻 Radios
+
+```typescript
+// Listar radios
+GET /api/radios
+
+// Crear radio
+POST /api/radios
+{
+  "name": "Mi Radio FM",
+  "clientId": "1",
+  "planId": "2",
+  "serverType": "shoutcast",
+  "hasAutoDJ": true
+}
+
+// Suspender/Activar radio
+PATCH /api/radios/:id/status
+{
+  "status": "suspended" | "active"
+}
+```
+
+---
+
+## 🎛️ Características Avanzadas
+
+### 🔄 **AutoDJ**
+- Reproducción automática 24/7
+- Gestión de playlist
+- Crossfade y efectos
+- Programación horaria
+
+### 📊 **Monitoreo**
+- Oyentes en tiempo real
+- Estadísticas de uso
+- Logs de conexión
+- Alertas automáticas
+
+### 🌐 **Multi-servidor**
+- Balanceador de carga
+- Redundancia automática
+- CDN integration
+- Geo-distribución
+
+---
+
+## 🚀 Roadmap
+
+### 📅 **Q1 2024**
+- [ ] 🎵 Player web integrado
+- [ ] 📱 App móvil nativa
+- [ ] 🔌 API SonicPanel completa
+- [ ] 📈 Analytics avanzados
+
+### 📅 **Q2 2024**
+- [ ] 🤖 IA para recomendaciones
+- [ ] 🎙️ Grabación de programas
+- [ ] 💰 Facturación automática
+- [ ] 🌍 Multi-idioma
+
+### 📅 **Q3 2024**
+- [ ] ☁️ Migración cloud
+- [ ] 🔐 2FA avanzado
+- [ ] 📺 Streaming video
+- [ ] 🎪 Eventos en vivo
+
+---
+
+## 🤝 Contribuir
+
+¡Las contribuciones son bienvenidas! 
+
+### 🛠️ **Configurar Desarrollo**
+
+```bash
+# Fork y clonar
+git clone https://github.com/tu-usuario/radiopanel.git
+cd radiopanel
+
+# Instalar dependencias
+npm install
+
+# Iniciar desarrollo
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### 📝 **Guidelines**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. 🔀 Crea una rama para tu feature
+2. ✍️ Commit con mensajes descriptivos
+3. 🧪 Incluye tests si es necesario
+4. 📖 Actualiza documentación
+5. 🔄 Crea Pull Request
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📞 Soporte
 
-## What technologies are used for this project?
+### 🆘 **¿Necesitas Ayuda?**
 
-This project is built with:
+- 📧 **Email**: support@radiopanel.com
+- 💬 **Discord**: [Únete a nuestro servidor](https://discord.gg/radiopanel)
+- 📱 **Telegram**: [@RadioPanelSupport](https://t.me/RadioPanelSupport)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/tu-usuario/radiopanel/issues)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 📚 **Recursos**
 
-## How can I deploy this project?
+- [📖 Documentación Completa](https://docs.radiopanel.com)
+- [🎥 Video Tutoriales](https://youtube.com/radiopanel)
+- [❓ FAQ](https://docs.radiopanel.com/faq)
+- [🔧 Troubleshooting](https://docs.radiopanel.com/troubleshooting)
 
-Simply open [Lovable](https://lovable.dev/projects/39be635f-6503-4998-8d06-410cc93fb8a0) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 📄 Licencia
 
-Yes, you can!
+Este proyecto está bajo la licencia **MIT**. Ver [LICENSE](LICENSE) para más detalles.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+MIT License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Copyright (c) 2024 RadioPanel
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+```
+
+---
+
+## 🌟 Agradecimientos
+
+### 💖 **Gracias a**
+
+- [React Team](https://reactjs.org/) por el framework increíble
+- [Tailwind Labs](https://tailwindcss.com/) por el CSS utility-first
+- [Shadcn](https://ui.shadcn.com/) por los componentes hermosos
+- [Lucide](https://lucide.dev/) por los iconos perfectos
+- [Lovable](https://lovable.dev/) por el hosting y desarrollo
+
+### 🏆 **Sponsors**
+
+¿Quieres ser sponsor? [Contáctanos](mailto:sponsor@radiopanel.com)
+
+---
+
+<div align="center">
+
+### 🚀 **¡Hecho con ❤️ para la comunidad de radio!**
+
+[⭐ Dale una estrella](https://github.com/tu-usuario/radiopanel) · [🔄 Hacer Fork](https://github.com/tu-usuario/radiopanel/fork) · [📢 Compartir](https://twitter.com/intent/tweet?text=Check%20out%20RadioPanel%20-%20Modern%20radio%20management%20panel&url=https://github.com/tu-usuario/radiopanel)
+
+**[⬆️ Volver arriba](#-radiopanel-admin)**
+
+</div>
