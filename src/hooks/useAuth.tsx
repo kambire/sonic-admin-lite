@@ -12,13 +12,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Simulated admin user for demo
-const DEMO_ADMIN: AdminUser = {
-  id: '1',
-  username: 'admin',
-  email: 'admin@radiopanel.com',
-  role: 'superadmin'
-};
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -26,30 +20,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check if user is already logged in
-    const savedUser = localStorage.getItem('radiopanel_admin');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const token = localStorage.getItem('radiopanel_token');
+    if (token) {
+      verifyToken(token);
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Demo credentials
-    if (username === 'admin' && password === 'admin123') {
-      setUser(DEMO_ADMIN);
-      localStorage.setItem('radiopanel_admin', JSON.stringify(DEMO_ADMIN));
-      return true;
+  const verifyToken = async (token: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUser(data.data.user);
+        } else {
+          localStorage.removeItem('radiopanel_token');
+        }
+      } else {
+        localStorage.removeItem('radiopanel_token');
+      }
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      localStorage.removeItem('radiopanel_token');
+    } finally {
+      setIsLoading(false);
     }
-    
-    return false;
+  };
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUser(data.data.user);
+        localStorage.setItem('radiopanel_token', data.data.token);
+        return true;
+      } else {
+        console.error('Login failed:', data.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('radiopanel_admin');
+    localStorage.removeItem('radiopanel_token');
   };
 
   return (

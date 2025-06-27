@@ -132,7 +132,7 @@ sudo mysql -u root -pSonicAdmin2024! -e "DROP DATABASE IF EXISTS test;" 2>/dev/n
 sudo mysql -u root -pSonicAdmin2024! -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';" 2>/dev/null || true
 sudo mysql -u root -pSonicAdmin2024! -e "FLUSH PRIVILEGES;" 2>/dev/null || true
 
-# Instalar PHP 8.1 (corregido - sin php8.1-json que no existe)
+# Instalar PHP 8.1 (sin php8.1-json que no existe)
 print_status "Instalando PHP 8.1 y extensiones..."
 sudo apt install -y -qq php8.1 php8.1-cli php8.1-mysql php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip libapache2-mod-php8.1
 
@@ -164,9 +164,14 @@ print_status "Copiando archivos del proyecto..."
 sudo cp -r $CURRENT_DIR/* $PROJECT_DIR/
 sudo chown -R $USER:www-data $PROJECT_DIR
 
-# Instalar dependencias del proyecto
-print_status "Instalando dependencias del proyecto..."
+# Instalar dependencias del frontend
+print_status "Instalando dependencias del frontend..."
 cd $PROJECT_DIR
+npm install --silent
+
+# Instalar dependencias del backend
+print_status "Instalando dependencias del backend..."
+cd $PROJECT_DIR/server
 npm install --silent
 
 # Cambiar puerto de Apache a 7000
@@ -196,7 +201,7 @@ sudo tee /etc/apache2/sites-available/sonic-admin.conf > /dev/null << EOF
         RewriteRule . /index.html [L]
     </Directory>
 
-    # Proxy para desarrollo (puerto 3000)
+    # Proxy para API backend (puerto 3000)
     ProxyPreserveHost On
     ProxyPass /api/ http://localhost:3000/api/
     ProxyPassReverse /api/ http://localhost:3000/api/
@@ -223,11 +228,12 @@ sudo systemctl restart apache2
 print_status "Configurando firewall..."
 sudo ufw allow 22/tcp >/dev/null 2>&1
 sudo ufw allow 7000/tcp >/dev/null 2>&1
+sudo ufw allow 3000/tcp >/dev/null 2>&1
 sudo ufw allow 443/tcp >/dev/null 2>&1
 sudo ufw allow 8000:8100/tcp >/dev/null 2>&1
 sudo ufw --force enable >/dev/null 2>&1
 
-# Crear base de datos (corregido)
+# Crear base de datos y usuario
 print_status "Creando base de datos..."
 sudo mysql -u root -pSonicAdmin2024! << 'EOF'
 CREATE DATABASE IF NOT EXISTS sonic_admin;
@@ -236,9 +242,14 @@ GRANT ALL PRIVILEGES ON sonic_admin.* TO 'sonic_admin'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 
-# Crear archivo de configuración
-print_status "Creando archivo de configuración..."
-cat > $PROJECT_DIR/.env << EOF
+# Inicializar esquema de base de datos
+print_status "Inicializando esquema de base de datos..."
+cd $PROJECT_DIR
+mysql -u sonic_admin -pSonicAdmin2024! sonic_admin < database/schema.sql
+
+# Crear archivo de configuración para el backend
+print_status "Creando archivo de configuración del backend..."
+cat > $PROJECT_DIR/server/.env << EOF
 # Configuración de la base de datos
 DB_HOST=localhost
 DB_PORT=3306
@@ -274,7 +285,15 @@ ICECAST_RELAY_PASSWORD=SonicAdmin2024!
 ICECAST_ADMIN_PASSWORD=SonicAdmin2024!
 EOF
 
-# Construir el proyecto
+# Crear archivo de configuración para el frontend
+print_status "Creando archivo de configuración del frontend..."
+cat > $PROJECT_DIR/.env << EOF
+VITE_API_URL=http://localhost:3000/api
+VITE_APP_NAME=SonicAdmin Lite
+VITE_APP_VERSION=1.0.0
+EOF
+
+# Construir el proyecto frontend
 print_status "Construyendo el proyecto para producción..."
 cd $PROJECT_DIR
 npm run build --silent
@@ -284,20 +303,21 @@ print_status "Configurando permisos..."
 sudo chown -R $USER:www-data $PROJECT_DIR
 sudo chmod -R 755 $PROJECT_DIR
 sudo chmod 600 $PROJECT_DIR/.env
+sudo chmod 600 $PROJECT_DIR/server/.env
 
-# Crear servicio systemd para el desarrollo
-print_status "Creando servicio systemd..."
-sudo tee /etc/systemd/system/sonic-admin.service > /dev/null << EOF
+# Crear servicio systemd para el backend
+print_status "Creando servicio systemd para el backend..."
+sudo tee /etc/systemd/system/sonic-admin-backend.service > /dev/null << EOF
 [Unit]
-Description=SonicAdmin Lite Interface
-After=network.target
+Description=SonicAdmin Lite Backend API
+After=network.target mysql.service
 
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$PROJECT_DIR
+WorkingDirectory=$PROJECT_DIR/server
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/npm start
+ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=10
 
@@ -305,8 +325,29 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
+# Crear servicio systemd para el frontend (desarrollo)
+sudo tee /etc/systemd/system/sonic-admin-frontend.service > /dev/null << EOF
+[Unit]
+Description=SonicAdmin Lite Frontend Development Server
+After=network.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$PROJECT_DIR
+Environment=NODE_ENV=development
+ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0 --port 3001
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Recargar systemd y habilitar servicios
 sudo systemctl daemon-reload
-sudo systemctl enable sonic-admin >/dev/null 2>&1
+sudo systemctl enable sonic-admin-backend >/dev/null 2>&1
+sudo systemctl start sonic-admin-backend
 
 # Mostrar información final
 print_success "¡Instalación completada!"
@@ -318,6 +359,7 @@ echo "• URL del Panel: http://$(hostname -I | awk '{print $1}'):7000"
 echo "• Usuario: admin"
 echo "• Contraseña: admin123"
 echo ""
+echo "• API Backend: http://$(hostname -I | awk '{print $1}'):3000/api"
 echo "• MySQL Root Password: SonicAdmin2024!"
 echo "• Icecast Admin Password: SonicAdmin2024!"
 echo "• Directorio del proyecto: $PROJECT_DIR"
@@ -328,6 +370,7 @@ echo "=================================================================="
 echo "• Apache2 (Puerto 7000): $(systemctl is-active apache2)"
 echo "• MySQL: $(systemctl is-active mysql)"
 echo "• Icecast2: $(systemctl is-active icecast2)"
+echo "• Backend API: $(systemctl is-active sonic-admin-backend)"
 echo ""
 echo "=================================================================="
 echo -e "${YELLOW}PRÓXIMOS PASOS:${NC}"
@@ -338,8 +381,10 @@ echo "3. Configura los ajustes del servidor en Settings"
 echo "4. ¡Comienza a gestionar radios!"
 echo ""
 echo -e "${YELLOW}COMANDOS ÚTILES:${NC}"
-echo "• Iniciar desarrollo: cd $PROJECT_DIR && npm run dev"
-echo "• Ver logs: sudo tail -f /var/log/apache2/sonic_admin_error.log"
-echo "• Reiniciar servicios: sudo systemctl restart sonic-admin apache2"
+echo "• Ver estado de servicios: sudo systemctl status sonic-admin-backend"
+echo "• Ver logs del backend: sudo journalctl -u sonic-admin-backend -f"
+echo "• Ver logs de Apache: sudo tail -f /var/log/apache2/sonic_admin_error.log"
+echo "• Reiniciar backend: sudo systemctl restart sonic-admin-backend"
+echo "• Reiniciar Apache: sudo systemctl restart apache2"
 echo ""
-print_success "¡SonicAdmin Lite está listo para usar en el puerto 7000!"
+print_success "¡SonicAdmin Lite con backend completo está listo en el puerto 7000!"
