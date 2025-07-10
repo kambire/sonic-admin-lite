@@ -12,13 +12,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Detectar la URL base del API basada en la ubicación actual
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Si estamos en desarrollo local
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3000/api';
+  }
+  
+  // Si estamos en el servidor, usar la misma IP pero puerto 3000
+  return `http://${window.location.hostname}:3000/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('API Base URL:', API_BASE_URL);
     // Check if user is already logged in
     const token = localStorage.getItem('radiopanel_token');
     if (token) {
@@ -30,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyToken = async (token: string) => {
     try {
+      console.log('Verifying token...');
       const response = await fetch(`${API_BASE_URL}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -37,14 +54,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
 
+      console.log('Verify response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Verify response data:', data);
         if (data.success) {
           setUser(data.data.user);
         } else {
           localStorage.removeItem('radiopanel_token');
         }
       } else {
+        console.log('Token verification failed with status:', response.status);
         localStorage.removeItem('radiopanel_token');
       }
     } catch (error) {
@@ -57,6 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log('Attempting login to:', `${API_BASE_URL}/auth/login`);
+      console.log('Login credentials:', { username, password });
+      
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -65,7 +89,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ username, password })
       });
 
+      console.log('Login response status:', response.status);
+      console.log('Login response headers:', response.headers);
+
+      if (!response.ok) {
+        console.error('Login failed with status:', response.status);
+        return false;
+      }
+
       const data = await response.json();
+      console.log('Login response data:', data);
 
       if (data.success) {
         setUser(data.data.user);
