@@ -64,7 +64,7 @@ echo "██║     ██║   ██║   ██╔══╝  "
 echo "███████╗██║   ██║   ███████╗"
 echo "╚══════╝╚═╝   ╚═╝   ╚══════╝"
 echo -e "${NC}"
-echo "Panel de Administración de Radios - Instalador v1.1"
+echo "Panel de Administración de Radios - Instalador v1.2 (No SSL)"
 echo "=================================================================="
 echo ""
 
@@ -74,7 +74,7 @@ if ! grep -q "Ubuntu 22.04" /etc/os-release; then
     print_warning "Continuando con la instalación..."
 fi
 
-print_status "Iniciando instalación del SonicAdmin Lite..."
+print_status "Iniciando instalación del SonicAdmin Lite (Modo Desarrollo - Sin SSL)..."
 
 # Configurar instalación no interactiva
 export DEBIAN_FRONTEND=noninteractive
@@ -104,10 +104,14 @@ print_success "npm instalado: $NPM_VERSION"
 print_status "Instalando Apache2..."
 sudo apt install -y -qq apache2
 
-# Configurar Apache2
-print_status "Configurando Apache2..."
+# Configurar Apache2 para puerto 7000 sin SSL
+print_status "Configurando Apache2 para puerto 7000..."
 sudo systemctl enable apache2 >/dev/null 2>&1
 sudo systemctl start apache2
+
+# Cambiar puerto de Apache a 7000 (sin SSL)
+sudo sed -i 's/Listen 80/Listen 7000/' /etc/apache2/ports.conf
+sudo sed -i 's/<VirtualHost \*:80>/<VirtualHost *:7000>/' /etc/apache2/sites-available/000-default.conf
 
 # Configurar MySQL automáticamente
 print_status "Configurando MySQL para instalación automática..."
@@ -123,7 +127,7 @@ print_status "Configurando MySQL..."
 sudo systemctl enable mysql >/dev/null 2>&1
 sudo systemctl start mysql
 
-# Configuración automática de MySQL
+# Configuración automática de MySQL (sin SSL)
 print_status "Configurando seguridad de MySQL..."
 sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'SonicAdmin2024!';" 2>/dev/null || true
 sudo mysql -u root -pSonicAdmin2024! -e "DELETE FROM mysql.user WHERE User='';" 2>/dev/null || true
@@ -132,7 +136,11 @@ sudo mysql -u root -pSonicAdmin2024! -e "DROP DATABASE IF EXISTS test;" 2>/dev/n
 sudo mysql -u root -pSonicAdmin2024! -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';" 2>/dev/null || true
 sudo mysql -u root -pSonicAdmin2024! -e "FLUSH PRIVILEGES;" 2>/dev/null || true
 
-# Instalar PHP 8.1 (sin php8.1-json que no existe)
+# Deshabilitar SSL en MySQL para desarrollo
+print_status "Deshabilitando SSL en MySQL..."
+sudo mysql -u root -pSonicAdmin2024! -e "SET GLOBAL require_secure_transport = OFF;" 2>/dev/null || true
+
+# Instalar PHP 8.1
 print_status "Instalando PHP 8.1 y extensiones..."
 sudo apt install -y -qq php8.1 php8.1-cli php8.1-mysql php8.1-curl php8.1-mbstring php8.1-xml php8.1-zip libapache2-mod-php8.1
 
@@ -145,7 +153,7 @@ echo "icecast2 icecast2/relaypassword password SonicAdmin2024!" | sudo debconf-s
 echo "icecast2 icecast2/adminpassword password SonicAdmin2024!" | sudo debconf-set-selections
 sudo apt install -y -qq icecast2
 
-# Configurar Icecast2
+# Configurar Icecast2 sin SSL
 print_status "Configurando Icecast2..."
 sudo systemctl enable icecast2 >/dev/null 2>&1
 
@@ -174,13 +182,8 @@ print_status "Instalando dependencias del backend..."
 cd $PROJECT_DIR/server
 npm install --silent
 
-# Cambiar puerto de Apache a 7000
-print_status "Configurando Apache para puerto 7000..."
-sudo sed -i 's/Listen 80/Listen 7000/' /etc/apache2/ports.conf
-sudo sed -i 's/<VirtualHost \*:80>/<VirtualHost *:7000>/' /etc/apache2/sites-available/000-default.conf
-
-# Configurar Apache Virtual Host
-print_status "Configurando Apache Virtual Host..."
+# Configurar Apache Virtual Host sin SSL
+print_status "Configurando Apache Virtual Host sin SSL..."
 sudo tee /etc/apache2/sites-available/sonic-admin.conf > /dev/null << EOF
 <VirtualHost *:7000>
     ServerName sonic-admin.local
@@ -201,10 +204,15 @@ sudo tee /etc/apache2/sites-available/sonic-admin.conf > /dev/null << EOF
         RewriteRule . /index.html [L]
     </Directory>
 
-    # Proxy para API backend (puerto 3000)
+    # Proxy para API backend (puerto 3000) - Sin SSL
     ProxyPreserveHost On
     ProxyPass /api/ http://localhost:3000/api/
     ProxyPassReverse /api/ http://localhost:3000/api/
+
+    # Headers para desarrollo sin SSL
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
     ErrorLog \${APACHE_LOG_DIR}/sonic_admin_error.log
     CustomLog \${APACHE_LOG_DIR}/sonic_admin_access.log combined
@@ -216,6 +224,7 @@ print_status "Habilitando módulos de Apache..."
 sudo a2enmod rewrite >/dev/null 2>&1
 sudo a2enmod proxy >/dev/null 2>&1
 sudo a2enmod proxy_http >/dev/null 2>&1
+sudo a2enmod headers >/dev/null 2>&1
 
 # Habilitar el sitio
 sudo a2ensite sonic-admin.conf >/dev/null 2>&1
@@ -224,12 +233,11 @@ sudo a2dissite 000-default.conf >/dev/null 2>&1
 # Reiniciar Apache
 sudo systemctl restart apache2
 
-# Configurar firewall básico
+# Configurar firewall básico (sin puertos SSL)
 print_status "Configurando firewall..."
 sudo ufw allow 22/tcp >/dev/null 2>&1
 sudo ufw allow 7000/tcp >/dev/null 2>&1
 sudo ufw allow 3000/tcp >/dev/null 2>&1
-sudo ufw allow 443/tcp >/dev/null 2>&1
 sudo ufw allow 8000:8100/tcp >/dev/null 2>&1
 sudo ufw --force enable >/dev/null 2>&1
 
@@ -247,29 +255,30 @@ print_status "Inicializando esquema de base de datos..."
 cd $PROJECT_DIR
 mysql -u sonic_admin -pSonicAdmin2024! sonic_admin < database/schema.sql
 
-# Crear archivo de configuración para el backend
+# Crear archivo de configuración para el backend (sin SSL)
 print_status "Creando archivo de configuración del backend..."
 cat > $PROJECT_DIR/server/.env << EOF
-# Configuración de la base de datos
+# Configuración de la base de datos (sin SSL)
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=sonic_admin
 DB_USER=sonic_admin
 DB_PASS=SonicAdmin2024!
 
-# Configuración del servidor
+# Configuración del servidor (desarrollo sin SSL)
 SERVER_PORT=3000
 SERVER_HOST=0.0.0.0
+NODE_ENV=development
 
 # Rutas de los servidores de streaming
 SHOUTCAST_PATH=/opt/shoutcast
 ICECAST_PATH=/etc/icecast2
 
-# Configuración de dominios
+# Configuración de dominios (sin SSL)
 BASE_DOMAIN=localhost
 ADMIN_EMAIL=admin@localhost
 
-# Claves de seguridad (cambiar en producción)
+# Claves de seguridad (desarrollo)
 JWT_SECRET=supersecretkey123456789
 API_KEY=sonic_admin_api_key_2024
 
@@ -279,18 +288,23 @@ SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
 
-# Icecast2 passwords
+# Icecast2 passwords (sin SSL)
 ICECAST_SOURCE_PASSWORD=SonicAdmin2024!
 ICECAST_RELAY_PASSWORD=SonicAdmin2024!
 ICECAST_ADMIN_PASSWORD=SonicAdmin2024!
+
+# Deshabilitar SSL para desarrollo
+DISABLE_SSL=true
+REQUIRE_HTTPS=false
 EOF
 
-# Crear archivo de configuración para el frontend
+# Crear archivo de configuración para el frontend (sin SSL)
 print_status "Creando archivo de configuración del frontend..."
 cat > $PROJECT_DIR/.env << EOF
 VITE_API_URL=http://localhost:3000/api
 VITE_APP_NAME=SonicAdmin Lite
 VITE_APP_VERSION=1.0.0
+VITE_DISABLE_SSL=true
 EOF
 
 # Construir el proyecto frontend
@@ -316,27 +330,9 @@ After=network.target mysql.service
 Type=simple
 User=$USER
 WorkingDirectory=$PROJECT_DIR/server
-Environment=NODE_ENV=production
-ExecStart=/usr/bin/node server.js
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Crear servicio systemd para el frontend (desarrollo)
-sudo tee /etc/systemd/system/sonic-admin-frontend.service > /dev/null << EOF
-[Unit]
-Description=SonicAdmin Lite Frontend Development Server
-After=network.target
-
-[Service]
-Type=simple
-User=$USER
-WorkingDirectory=$PROJECT_DIR
 Environment=NODE_ENV=development
-ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0 --port 3001
+Environment=DISABLE_SSL=true
+ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=10
 
@@ -353,7 +349,7 @@ sudo systemctl start sonic-admin-backend
 print_success "¡Instalación completada!"
 echo ""
 echo "=================================================================="
-echo -e "${GREEN}INFORMACIÓN DE ACCESO:${NC}"
+echo -e "${GREEN}INFORMACIÓN DE ACCESO (HTTP - Sin SSL):${NC}"
 echo "=================================================================="
 echo "• URL del Panel: http://$(hostname -I | awk '{print $1}'):7000"
 echo "• Usuario: admin"
@@ -365,7 +361,7 @@ echo "• Icecast Admin Password: SonicAdmin2024!"
 echo "• Directorio del proyecto: $PROJECT_DIR"
 echo ""
 echo "=================================================================="
-echo -e "${GREEN}SERVICIOS INSTALADOS:${NC}"
+echo -e "${GREEN}SERVICIOS INSTALADOS (Modo Desarrollo):${NC}"
 echo "=================================================================="
 echo "• Apache2 (Puerto 7000): $(systemctl is-active apache2)"
 echo "• MySQL: $(systemctl is-active mysql)"
@@ -387,4 +383,7 @@ echo "• Ver logs de Apache: sudo tail -f /var/log/apache2/sonic_admin_error.lo
 echo "• Reiniciar backend: sudo systemctl restart sonic-admin-backend"
 echo "• Reiniciar Apache: sudo systemctl restart apache2"
 echo ""
-print_success "¡SonicAdmin Lite con backend completo está listo en el puerto 7000!"
+echo -e "${RED}NOTA IMPORTANTE:${NC} Este sistema está configurado para desarrollo"
+echo "sin SSL. Para producción, configurar HTTPS es altamente recomendado."
+echo ""
+print_success "¡SonicAdmin Lite está listo en modo desarrollo en el puerto 7000!"

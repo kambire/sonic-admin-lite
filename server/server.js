@@ -19,23 +19,33 @@ const db = require('./config/database');
 const app = express();
 const PORT = process.env.SERVER_PORT || 3000;
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
-  origin: ['http://localhost:7000', 'http://localhost:3000', 'http://localhost:5173'],
-  credentials: true
+// Security middleware - Configurado para desarrollo sin SSL
+app.use(helmet({
+  contentSecurityPolicy: false,
+  hsts: false // Deshabilitar HSTS
 }));
 
-// Rate limiting
+app.use(cors({
+  origin: ['http://localhost:7000', 'http://localhost:3000', 'http://localhost:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Rate limiting más permisivo para desarrollo
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 1000, // Aumentar límite para desarrollo
+  skip: (req) => {
+    // Saltar rate limiting para localhost
+    return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip.startsWith('192.168.') || req.ip.startsWith('10.');
+  }
 });
 app.use(limiter);
 
 // Body parsing
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Initialize database connection
 db.createPool();
@@ -45,7 +55,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     success: true, 
     message: 'SonicAdmin Lite API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: 'development'
   });
 });
 
@@ -115,7 +126,7 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
         suspendedRadios: suspendedRadios.count || 0,
         totalClients: totalClients.count || 0,
         totalListeners: totalListeners.total || 0,
-        revenue: 219.97 // Calculado dinámicamente en el futuro
+        revenue: 219.97
       }
     });
   } catch (error) {
@@ -147,6 +158,7 @@ app.use('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 SonicAdmin Lite API running on port ${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🔧 Development mode - SSL disabled`);
 });
 
 module.exports = app;
