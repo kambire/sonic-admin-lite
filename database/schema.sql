@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS admin_users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'superadmin') DEFAULT 'admin',
+    status ENUM('active', 'suspended', 'inactive') DEFAULT 'active',
+    last_login TIMESTAMP NULL,
+    login_attempts INT DEFAULT 0,
+    locked_until TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -82,9 +86,9 @@ CREATE INDEX idx_radios_port ON radios(port);
 CREATE INDEX idx_system_logs_level ON system_logs(level);
 CREATE INDEX idx_system_logs_created_at ON system_logs(created_at);
 
--- Insertar usuario administrador por defecto
-INSERT INTO admin_users (username, email, password_hash, role) 
-VALUES ('admin', 'admin@localhost', '$2b$10$rQZ9QkZpVQ8KNaT.tJ.tR.3vVhV3VhV3VhV3VhV3VhV3VhV3VhV3Vh', 'superadmin')
+-- Insertar usuario administrador por defecto (hash de 'admin123')
+INSERT INTO admin_users (username, email, password_hash, role, status) 
+VALUES ('admin', 'admin@localhost', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superadmin', 'active')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- Insertar datos de ejemplo

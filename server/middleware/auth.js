@@ -2,7 +2,12 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123456789';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET must be set in production');
+  }
+  return 'supersecretkey123456789';
+})();
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -18,11 +23,31 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    console.log('Token decoded successfully for user ID:', decoded.id);
+    // Validate token format
+    if (typeof token !== 'string' || token.length < 10) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token format' 
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      issuer: 'sonic-admin',
+      audience: 'sonic-admin-client'
+    });
     
-    // Para el usuario demo, permitir acceso directo
-    if (decoded.username === 'admin' && decoded.id === 1) {
+    console.log('Token decoded successfully for user ID:', decoded.id);
+
+    // Validate token payload
+    if (!decoded.id || !decoded.username) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token payload' 
+      });
+    }
+    
+    // Para el usuario demo, permitir acceso directo solo en desarrollo
+    if (decoded.username === 'admin' && decoded.id === 1 && process.env.NODE_ENV !== 'production') {
       req.user = {
         id: 1,
         username: 'admin',
@@ -34,7 +59,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Para otros usuarios, verificar en base de datos
     const users = await db.query(
-      'SELECT id, username, email, role FROM admin_users WHERE id = ?',
+      'SELECT id, username, email, role, status FROM admin_users WHERE id = ? AND status = "active"',
       [decoded.id]
     );
 

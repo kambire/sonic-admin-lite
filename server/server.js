@@ -12,56 +12,138 @@ const clientsController = require('./controllers/clientsController');
 
 // Middleware
 const { authenticateToken } = require('./middleware/auth');
+const { loginLimiter, apiLimiter, validateInput, securityLogger } = require('./middleware/security');
 
 // Database
 const db = require('./config/database');
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Security middleware - Configurado para desarrollo sin SSL
+console.log('🚀 Starting SonicAdmin Lite API Server...');
+console.log('Environment:', process.env.NODE_ENV || 'development');
+console.log('Production mode:', isProduction);
+
+// Security middleware
 app.use(helmet({
-  contentSecurityPolicy: false,
-  hsts: false // Deshabilitar HSTS
+  contentSecurityPolicy: isProduction ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  } : false,
+  hsts: isProduction ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  } : false,
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: 'same-origin' }
 }));
 
-app.use(cors({
-  origin: ['http://localhost:7000', 'http://localhost:3000', 'http://localhost:5173'],
+// CORS configuration
+const corsOptions = {
+  origin: isProduction ? 
+    process.env.FRONTEND_URL || false : 
+    ['http://localhost:7000', 'http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400 // 24 hours
+};
 
-// Rate limiting más permisivo para desarrollo
+app.use(cors(corsOptions));
+
+// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Aumentar límite para desarrollo
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: isProduction ? 100 : 1000, // Más estricto en producción
+  message: {
+    error: 'Too many requests from this IP, please try again later',
+    retryAfter: 15
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
   skip: (req) => {
-    // Saltar rate limiting para localhost
-    return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip.startsWith('192.168.') || req.ip.startsWith('10.');
+    if (isProduction) return false;
+    // Solo saltar en desarrollo para IPs locales
+    const ip = req.ip || req.connection.remoteAddress;
+    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || 
+           ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.');
   }
 });
 app.use(limiter);
 
-// Body parsing
-app.use(bodyParser.json({ limit: '10mb' }));
+// Body parsing with security
+app.use(bodyParser.json({ 
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({ success: false, message: 'Invalid JSON' });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  next();
+});
+
+// Security logging
+app.use(securityLogger);
+
+// Request logging
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const ip = req.ip || req.connection.remoteAddress;
+  console.log(`${timestamp} - ${req.method} ${req.path} - IP: ${ip} - User-Agent: ${req.get('User-Agent')}`);
+  next();
+});
+
+// Input validation for all POST/PUT requests
+app.use((req, res, next) => {
+  if (['POST', 'PUT'].includes(req.method)) {
+    return validateInput(req, res, next);
+  }
+  next();
+});
 
 // Initialize database connection
 db.createPool();
 
-// Routes
+// API Routes with rate limiting
+app.use('/api/', apiLimiter);
+
 app.get('/api/health', (req, res) => {
   res.json({ 
-    success: true, 
-    message: 'SonicAdmin Lite API is running',
+    status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: 'development'
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Auth routes
-app.post('/api/auth/login', authController.login);
+// Auth routes with strict rate limiting
+app.post('/api/auth/login', loginLimiter, authController.login);
 app.get('/api/auth/verify', authenticateToken, authController.verify);
 
 // Clients routes

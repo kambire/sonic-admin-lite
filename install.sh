@@ -233,13 +233,18 @@ sudo a2dissite 000-default.conf >/dev/null 2>&1
 # Reiniciar Apache
 sudo systemctl restart apache2
 
-# Configurar firewall básico (sin puertos SSL)
+# Configurar firewall
 print_status "Configurando firewall..."
-sudo ufw allow 22/tcp >/dev/null 2>&1
-sudo ufw allow 7000/tcp >/dev/null 2>&1
-sudo ufw allow 3000/tcp >/dev/null 2>&1
-sudo ufw allow 8000:8100/tcp >/dev/null 2>&1
 sudo ufw --force enable >/dev/null 2>&1
+sudo ufw allow 22/tcp >/dev/null 2>&1     # SSH
+sudo ufw allow 7000/tcp >/dev/null 2>&1   # Frontend
+sudo ufw allow 3000/tcp >/dev/null 2>&1   # Backend API
+sudo ufw allow 8000/tcp >/dev/null 2>&1   # Icecast2
+sudo ufw allow 80/tcp >/dev/null 2>&1     # HTTP (para redirección)
+sudo ufw allow 443/tcp >/dev/null 2>&1    # HTTPS
+
+# Denegar acceso directo a MySQL desde exterior
+sudo ufw deny 3306/tcp >/dev/null 2>&1
 
 # Crear base de datos y usuario
 print_status "Creando base de datos..."
@@ -255,32 +260,38 @@ print_status "Inicializando esquema de base de datos..."
 cd $PROJECT_DIR
 mysql -u sonic_admin -pSonicAdmin2024! sonic_admin < database/schema.sql
 
-# Crear archivo de configuración para el backend (sin SSL)
+# Generar JWT secret seguro
+JWT_SECRET=$(openssl rand -hex 32)
+
+# Crear archivo de configuración para el backend
 print_status "Creando archivo de configuración del backend..."
 cat > $PROJECT_DIR/server/.env << EOF
-# Configuración de la base de datos (sin SSL)
+# Configuración de la base de datos
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=sonic_admin
 DB_USER=sonic_admin
 DB_PASS=SonicAdmin2024!
 
-# Configuración del servidor (desarrollo sin SSL)
+# Configuración del servidor
 SERVER_PORT=3000
 SERVER_HOST=0.0.0.0
-NODE_ENV=development
+NODE_ENV=production
 
 # Rutas de los servidores de streaming
 SHOUTCAST_PATH=/opt/shoutcast
 ICECAST_PATH=/etc/icecast2
 
-# Configuración de dominios (sin SSL)
-BASE_DOMAIN=localhost
-ADMIN_EMAIL=admin@localhost
+# Configuración de dominios
+BASE_DOMAIN=${SERVER_IP}
+ADMIN_EMAIL=admin@${SERVER_IP}
 
-# Claves de seguridad (desarrollo)
-JWT_SECRET=supersecretkey123456789
-API_KEY=sonic_admin_api_key_2024
+# Claves de seguridad (generadas automáticamente)
+JWT_SECRET=${JWT_SECRET}
+API_KEY=sonic_admin_api_key_$(openssl rand -hex 16)
+
+# Frontend URL (para CORS)
+FRONTEND_URL=http://${SERVER_IP}:7000
 
 # Configuración SMTP (opcional)
 SMTP_HOST=
@@ -288,23 +299,26 @@ SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
 
-# Icecast2 passwords (sin SSL)
+# Icecast2 passwords
 ICECAST_SOURCE_PASSWORD=SonicAdmin2024!
 ICECAST_RELAY_PASSWORD=SonicAdmin2024!
 ICECAST_ADMIN_PASSWORD=SonicAdmin2024!
 
-# Deshabilitar SSL para desarrollo
-DISABLE_SSL=true
-REQUIRE_HTTPS=false
+# Configuración de seguridad
+RATE_LIMIT_WINDOW=900000
+RATE_LIMIT_MAX=100
+SESSION_TIMEOUT=28800
+MAX_LOGIN_ATTEMPTS=5
+LOCKOUT_TIME=900
 EOF
 
-# Crear archivo de configuración para el frontend (sin SSL)
+# Crear archivo de configuración para el frontend
 print_status "Creando archivo de configuración del frontend..."
 cat > $PROJECT_DIR/.env << EOF
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=http://${SERVER_IP}:3000/api
 VITE_APP_NAME=SonicAdmin Lite
 VITE_APP_VERSION=1.0.0
-VITE_DISABLE_SSL=true
+VITE_ENVIRONMENT=production
 EOF
 
 # Construir el proyecto frontend

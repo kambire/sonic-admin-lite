@@ -23,8 +23,9 @@ const getApiBaseUrl = () => {
     return 'http://localhost:3000/api';
   }
   
-  // Si estamos en el servidor, usar la misma IP pero puerto 3000
-  return `http://${window.location.hostname}:3000/api`;
+  // En producción, usar HTTPS si está disponible
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  return `${protocol}//${window.location.hostname}:3000/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();
